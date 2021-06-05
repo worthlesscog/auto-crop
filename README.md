@@ -29,11 +29,12 @@ autocrop filename switches
 |Switch|Description|
 |---|---|
 |-a 0.13|Angle tweak for when artwork isn't properly aligned with crop edge, typically small i.e -0.1|
-|-c|Stop after Canny edge detection and dump the image|
+|-c|Stop after Canny edge detection and dump the Canny image|
 |-(blr)|Specify bottom, left or right as alignment edge, defaults to top|
 |-i|Dump intermediate work images, off by default|
 |-m 25|Set ragged edge crop margin, defaults to 0, the detected edge line|
 |-m 5,5,10,0|Set ragged edge crop margins for bottom, left, right and top respectively|
+|-o file|Output image name, defaults to "output.jpg"|
 |-q 95|JPEG save quality, defaults to 100|
 |-sigma 0.45|Canny threshold control, defaults to 0.33|
 ### Limitations

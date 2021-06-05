@@ -6,6 +6,7 @@ import org.opencv.core.{Core, Mat, MatOfInt, MatOfPoint, Point, Rect, Size}
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
 
+import java.io.File
 import java.util.ArrayList
 import scala.annotation.tailrec
 import scala.math.{abs, atan, toDegrees}
@@ -33,8 +34,8 @@ object AutoCrop:
             case Left(oops) => println(oops)
             case Right(c)   =>
                 c.operation match
-                    case Canny  => load(c.sourceImage) map grayToCanny(c)
-                    case Square => load(c.sourceImage) map { grayToCanny(c) andThen autoCrop(c) }
+                    case Canny  => load(c.sourceImage) map grayToCanny(c, true)
+                    case Square => load(c.sourceImage) map { grayToCanny(c, c.showSteps) andThen autoCrop(c) }
 
     def parseControls(args: List[String], c: ScanControls): Either[String, ScanControls] =
         if (args isEmpty)
@@ -46,34 +47,35 @@ object AutoCrop:
             case "-a" :: DECIMAL(a) :: t            => parseControls(t, c.copy(angleAdjustment = a.toDouble % 360.0))
             case ("-b" | "-l" | "-r") :: t          => parseControls(t, c.copy(alignmentEdge = edges(args head)))
             case "-c" :: t                          => parseControls(t, c.copy(operation = Canny))
-            case "-i" :: t                          => parseControls(t, c.copy(showIntermediateSteps = true))
+            case "-i" :: t                          => parseControls(t, c.copy(showSteps = true))
             case "-m" :: INTEGER(m) :: t            => parseControls(t, c.copy(margins = Margins(m)))
             case "-m" :: MARGINS(b, l, r, top) :: t => parseControls(t, c.copy(margins = Margins(b, l, r, top)))
+            case "-o" :: o :: t                     => parseControls(t, c.copy(outputImage = o))
             case "-q" :: INTEGER(q) :: t            => parseControls(t, c.copy(saveQuality = 100 min q.toInt))
             case "-sigma" :: DECIMAL(s) :: t        => parseControls(t, c.copy(sigma = s.toDouble))
             case path :: t                          => parseControls(t, c.copy(sourceImage = path))
             case _                                  => parseControls(Nil, c)
 
-    def grayToCanny(c: ScanControls) =
+    def grayToCanny(c: ScanControls, showSteps: Boolean) =
         grayscale andThen
-        save("\\rip\\_0.jpg", c.showIntermediateSteps) andThen
+        save(c.sourceImage, "_0.jpg", c.showSteps) andThen
         gaussianBlur(5, 1.0, 1.0) andThen
         resize(CANNY_SIZE) andThen
         autoCanny(c.sigma) andThen
         // canny(50.0, 200.0, 3) andThen
-        save("\\rip\\_1.jpg", c.showIntermediateSteps)
+        save(c.sourceImage, "_1.jpg", showSteps)
 
     def autoCrop(c: ScanControls) =
         rotate(c.alignmentEdge, c.angleAdjustment) andThen
-        save("\\rip\\_2.jpg", c.showIntermediateSteps) andThen
+        save(c.sourceImage, "_2.jpg", c.showSteps) andThen
         grayscale2 andThen
         gaussianBlur(5, 1.0, 1.0) andThen
         resize(CANNY_SIZE) andThen
         autoCanny(c.sigma) andThen
         // canny(50.0, 200.0, 3) andThen
-        save("\\rip\\_3.jpg", c.showIntermediateSteps) andThen
+        save(c.sourceImage, "_3.jpg", c.showSteps) andThen
         crop(c.margins) andThen
-        save("\\rip\\source.jpg", c.saveQuality)
+        save(c.sourceImage, c.outputImage, c.saveQuality)
 
     def load(image: String) =
         val i = Imgcodecs.imread(image)
@@ -136,20 +138,21 @@ object AutoCrop:
     def odd(i: Int) =
         i % 2 != 0
 
-    def canny(hysteresisThreshold1: Double, hysteresisThreshold2: Double, sobelAperture: Int)(original: Mat, i: Mat) =
-        val o = Mat()
-        Imgproc.Canny(i, o, hysteresisThreshold1, hysteresisThreshold2, sobelAperture, true)
-        (original, o)
+    // def canny(hysteresisThreshold1: Double, hysteresisThreshold2: Double, sobelAperture: Int)(original: Mat, i: Mat) =
+    //     val o = Mat()
+    //     Imgproc.Canny(i, o, hysteresisThreshold1, hysteresisThreshold2, sobelAperture, true)
+    //     (original, o)
 
-    def save(image: String, actuallySave: Boolean = false)(original: Mat, i: Mat): (Mat, Mat) =
+    def save(source: String, image: String, actuallySave: Boolean = false)(original: Mat, i: Mat): (Mat, Mat) =
         if (actuallySave)
-            save(image, WIP_QUALITY)(original, i)
+            save(source, image, WIP_QUALITY)(original, i)
         else
             (original, i)
 
-    def save(image: String, quality: Int)(original: Mat, i: Mat) =
+    def save(source: String, image: String, quality: Int)(original: Mat, i: Mat) =
+        val f = File(File(source).getParent, image).toString
         val flags = MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, quality)
-        Imgcodecs.imwrite(image, i, flags)
+        Imgcodecs.imwrite(f, i, flags)
         (original, i)
 
     // see https://www.pyimagesearch.com/2017/01/02/rotate-images-correctly-with-opencv-and-python/
