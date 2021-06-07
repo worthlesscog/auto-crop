@@ -8,7 +8,6 @@ import org.opencv.imgproc.Imgproc
 
 import java.io.File
 import java.util.ArrayList
-import scala.annotation.tailrec
 import scala.math.{abs, atan, toDegrees}
 
 object AutoCrop:
@@ -20,6 +19,7 @@ object AutoCrop:
     val CANNY_SIZE = 1024
     val DECIMAL = """^(-?\d{1,3}\.\d+)$""".r
     val INTEGER = """^(\d{1,3})$""".r
+    val MARGIN = """^(-?\d{1,3})$""".r
     val MARGINS = """^(-?\d{1,3}),(-?\d{1,3}),(-?\d{1,3}),(-?\d{1,3})$""".r
     val WIP_QUALITY = 75
 
@@ -48,8 +48,8 @@ object AutoCrop:
             case ("-b" | "-l" | "-r") :: t          => parseControls(t, c.copy(alignmentEdge = edges(args head)))
             case "-c" :: t                          => parseControls(t, c.copy(operation = Canny))
             case "-i" :: t                          => parseControls(t, c.copy(showSteps = true))
-            case "-m" :: INTEGER(m) :: t            => parseControls(t, c.copy(margins = Margins(m)))
-            case "-m" :: MARGINS(b, l, r, top) :: t => parseControls(t, c.copy(margins = Margins(b, l, r, top)))
+            case "-m" :: MARGIN(m) :: t             => parseControls(t, c.copy(margins = Margins(m)))
+            case "-m" :: MARGINS(top, b, l, r) :: t => parseControls(t, c.copy(margins = Margins(top, b, l, r)))
             case "-o" :: o :: t                     => parseControls(t, c.copy(outputImage = o))
             case "-q" :: INTEGER(q) :: t            => parseControls(t, c.copy(saveQuality = 100 min q.toInt))
             case "-sigma" :: DECIMAL(s) :: t        => parseControls(t, c.copy(sigma = s.toDouble))
@@ -231,9 +231,9 @@ object AutoCrop:
     // XXX - should check lines and only crop lines that are correctly oriented
     def crop(m: Margins)(original: Mat, i: Mat) =
         val (_, t) = findEdge(Top, i)
-        val (_, r) = findEdge(RightSide, i)
         val (_, b) = findEdge(Bottom, i)
         val (_, l) = findEdge(LeftSide, i)
+        val (_, r) = findEdge(RightSide, i)
 
         val (sx, sy) = (original.cols / i.cols.toDouble, original.rows / i.rows.toDouble)
 
