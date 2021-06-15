@@ -1,7 +1,6 @@
 package com.worthlesscog.images
 
 import com.worthlesscog.images.Edge._
-import com.worthlesscog.images.Operation._
 import org.opencv.core.{Core, Mat, MatOfInt, MatOfPoint, Point, Rect, Size}
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
@@ -30,12 +29,9 @@ object AutoCrop:
         nu.pattern.OpenCV.loadShared()
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
 
-        parseControls(args toList, ScanControls()) match
+        parseControls(args toList, ScanControls(op = cannyThenSquare)) match
             case Left(oops) => println(oops)
-            case Right(c)   =>
-                c.operation match
-                    case Canny  => load(c.sourceImage) map grayToCanny(c, true)
-                    case Square => load(c.sourceImage) map { grayToCanny(c, c.showSteps) andThen autoCrop(c) }
+            case Right(c)   => scan(c)
 
     def parseControls(args: List[String], c: ScanControls): Either[String, ScanControls] =
         if (args isEmpty)
@@ -46,7 +42,7 @@ object AutoCrop:
         else args match
             case "-a" :: DECIMAL(a) :: t            => parseControls(t, c.copy(angleAdjustment = a.toDouble % 360.0))
             case ("-b" | "-l" | "-r") :: t          => parseControls(t, c.copy(alignmentEdge = edges(args head)))
-            case "-c" :: t                          => parseControls(t, c.copy(operation = Canny))
+            case "-c" :: t                          => parseControls(t, c.copy(op = cannyOnly))
             case "-i" :: t                          => parseControls(t, c.copy(showSteps = true))
             case "-m" :: MARGIN(m) :: t             => parseControls(t, c.copy(margins = Margins(m)))
             case "-m" :: MARGINS(top, b, l, r) :: t => parseControls(t, c.copy(margins = Margins(top, b, l, r)))
@@ -55,6 +51,17 @@ object AutoCrop:
             case "-sigma" :: DECIMAL(s) :: t        => parseControls(t, c.copy(sigma = s.toDouble))
             case path :: t                          => parseControls(t, c.copy(sourceImage = path))
             case _                                  => parseControls(Nil, c)
+
+    def scan(c: ScanControls) =
+        load(c.sourceImage) match
+            case Some(i) => c.op(c, i)
+            case None    => println(s"Can't load ${c.sourceImage}")
+
+    def cannyOnly(c: ScanControls, image: Mat) =
+        grayToCanny(c, true)(image)
+
+    def cannyThenSquare(c: ScanControls, image: Mat) =
+        (grayToCanny(c, c.showSteps) andThen autoCrop(c)) (image)
 
     def grayToCanny(c: ScanControls, showSteps: Boolean) =
         grayscale andThen
