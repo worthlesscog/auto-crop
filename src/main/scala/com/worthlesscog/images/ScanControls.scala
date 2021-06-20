@@ -8,9 +8,10 @@ case class ScanControls(
     angleAdjustment: Double = 0.0,
     margins: Margins = Margins(0, 0, 0, 0),
     op: (ScanControls, Mat) => Unit,
-    outputImage: String = "output.jpg",
+    overwrite: Boolean = false,
     saveQuality: Int = 100,
     showSteps: Boolean = false,
     sigma: Double = 0.33,
-    sourceImage: String = ""
+    sourceImage: String = "",
+    targetImage: String = "output.jpg"
 )

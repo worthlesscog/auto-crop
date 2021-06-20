@@ -46,9 +46,10 @@ object AutoCrop:
             case "-i" :: t                          => parseControls(t, c.copy(showSteps = true))
             case "-m" :: MARGIN(m) :: t             => parseControls(t, c.copy(margins = Margins(m)))
             case "-m" :: MARGINS(top, b, l, r) :: t => parseControls(t, c.copy(margins = Margins(top, b, l, r)))
-            case "-o" :: o :: t                     => parseControls(t, c.copy(outputImage = o))
+            case "-o" :: t                          => parseControls(t, c.copy(overwrite = true))
             case "-q" :: INTEGER(q) :: t            => parseControls(t, c.copy(saveQuality = 100 min q.toInt))
             case "-sigma" :: DECIMAL(s) :: t        => parseControls(t, c.copy(sigma = s.toDouble))
+            case "-t" :: o :: t                     => parseControls(t, c.copy(targetImage = o))
             case path :: t                          => parseControls(t, c.copy(sourceImage = path))
             case _                                  => parseControls(Nil, c)
 
@@ -82,7 +83,7 @@ object AutoCrop:
         // canny(50.0, 200.0, 3) andThen
         save(c.sourceImage, "_3.jpg", c.showSteps) andThen
         crop(c.margins) andThen
-        save(c.sourceImage, c.outputImage, c.saveQuality)
+        save(c.sourceImage, c.targetImage, c.saveQuality, c.overwrite)
 
     def load(image: String) =
         val i = Imgcodecs.imread(image)
@@ -152,15 +153,33 @@ object AutoCrop:
 
     def save(source: String, image: String, actuallySave: Boolean = false)(original: Mat, i: Mat): (Mat, Mat) =
         if (actuallySave)
-            save(source, image, WIP_QUALITY)(original, i)
+            save(source, image, WIP_QUALITY, true)(original, i)
         else
             (original, i)
 
-    def save(source: String, image: String, quality: Int)(original: Mat, i: Mat) =
-        val f = File(File(source).getParent, image).toString
+    def save(source: String, image: String, quality: Int, overwrite: Boolean)(original: Mat, i: Mat) =
+        val f = File(File(source).getParent, image)
+        val o = if (f.exists && !overwrite) next(f) else f
         val flags = MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, quality)
-        Imgcodecs.imwrite(f, i, flags)
+        Imgcodecs.imwrite(o.toString, i, flags)
         (original, i)
+
+    def next(f: File) =
+        val (p, n, s) = split(f)
+        var i = 2
+        var o: File = null
+        while
+            o = new File(p, s"$n$i.$s")
+            o.exists
+        do
+            i += 1
+        o
+
+    def split(f: File) =
+        val n = f.getName
+        n.lastIndexOf('.') match
+            case -1 => (f.getParent, n, "")
+            case i  => (f.getParent, n.substring(0, i), n.substring(i + 1))
 
     // see https://www.pyimagesearch.com/2017/01/02/rotate-images-correctly-with-opencv-and-python/
     def rotate(edge: Edge, angularAdjustment: Double)(originalAndCannied: (Mat, Mat)) =

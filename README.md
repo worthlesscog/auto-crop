@@ -34,9 +34,10 @@ autocrop filename switches
 |-i|Dump intermediate work images, off by default|
 |-m 25|Set ragged edge crop margin, defaults to 0, the detected edge line|
 |-m 5,5,10,0|Set ragged edge crop margins for bottom, left, right and top respectively|
-|-o file|Output image name, defaults to "output.jpg"|
+|-o|Overwrite target if it exists, off by default
 |-q 95|JPEG save quality, defaults to 100|
 |-sigma 0.45|Canny threshold control, defaults to 0.33|
+|-t file|Target image name, defaults to "output.jpg"|
 ### Limitations
 * It's a bit rough and ready. It works though. "Mostly"
 * JPEG's only
