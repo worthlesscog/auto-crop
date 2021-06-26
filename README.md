@@ -33,7 +33,7 @@ autocrop filename switches
 |-(blr)|Specify bottom, left or right as alignment edge, defaults to top|
 |-i|Dump intermediate work images, off by default|
 |-m 25|Set ragged edge crop margin, defaults to 0, the detected edge line|
-|-m 5,5,10,0|Set ragged edge crop margins for bottom, left, right and top respectively|
+|-m 5,5,10,0|Set ragged edge crop margins for top, left, bottom and right respectively|
 |-o|Overwrite target if it exists, off by default
 |-q 95|JPEG save quality, defaults to 100|
 |-sigma 0.45|Canny threshold control, defaults to 0.33|
