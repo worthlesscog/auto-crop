@@ -7,7 +7,7 @@ case class ScanControls(
     alignmentEdge: Edge = Top,
     angleAdjustment: Double = 0.0,
     margins: Margins = Margins(0, 0, 0, 0),
-    op: (ScanControls, Mat) => Unit,
+    op: (Mat, ScanControls) => Unit,
     overwrite: Boolean = false,
     saveQuality: Int = 100,
     showSteps: Boolean = false,
