@@ -31,21 +31,18 @@ object Crop:
             Some(i)
 
     def cannyOnly(image: Mat, c: ScanControls) =
-        grayToCanny(c, true)(image)
+        grayToCanny(c, true, 0)(image)
 
-    def cannyThenSquare(image: Mat, c: ScanControls) =
-        (grayToCanny(c, c.showSteps) andThen autoCrop(image, c)) (image)
-
-    private def grayToCanny(c: ScanControls, showSteps: Boolean) =
+    private def grayToCanny(c: ScanControls, showSteps: Boolean, from: Int) =
         grayscale andThen
-        save(c.sourceImage, "_0.jpg", c.showSteps) andThen
+        save(c.sourceImage, s"_${from}-grayscale.jpg", c.showSteps) andThen
         gaussianBlur(5, 1.0, 1.0) andThen
-        save(c.sourceImage, "_1.jpg", c.showSteps) andThen
+        save(c.sourceImage, s"_${from + 1}-blur.jpg", c.showSteps) andThen
         resize(CANNY_SIZE) andThen
-        save(c.sourceImage, "_2.jpg", c.showSteps) andThen
+        save(c.sourceImage, s"_${from + 2}-resize.jpg", c.showSteps) andThen
         autoCanny(c.sigma) andThen
         // canny(50.0, 200.0, 3) andThen
-        save(c.sourceImage, "_3.jpg", showSteps)
+        save(c.sourceImage, s"_${from + 3}-autocanny.jpg", showSteps)
 
     def grayscale(i: Mat) =
         val o = Mat()
@@ -97,6 +94,7 @@ object Crop:
     // A lower value of sigma indicates a tighter threshold, whereas
     // a larger value of sigma gives a wider threshold.
     def autoCanny(sigma: Double)(i: Mat) =
+        println(s"sigma $sigma")
         val v = median(i)
         val l = (0.0 max (1.0 - sigma) * v).toInt
         val u = (255.0 min (1.0 + sigma) * v).toInt
@@ -131,20 +129,15 @@ object Crop:
     def odd(i: Int) =
         i % 2 != 0
 
-    private def autoCrop(image: Mat, c: ScanControls) =
+    def cannyThenSquare(image: Mat, c: ScanControls) =
+        val c1 = grayToCanny(c, c.showSteps, 0)(image)
+        val r = rotateSquare(image, c)(c1)
+        val c2 = grayToCanny(c, c.showSteps, 5)(r)
+        finalCrop(r, c)(c2)
+
+    private def rotateSquare(image: Mat, c: ScanControls) =
         rotate(image, c.alignmentEdge, c.angleAdjustment) andThen
-        save(c.sourceImage, "_4.jpg", c.showSteps) andThen
-        grayscale andThen
-        save(c.sourceImage, "_5.jpg", c.showSteps) andThen
-        gaussianBlur(5, 1.0, 1.0) andThen
-        save(c.sourceImage, "_6.jpg", c.showSteps) andThen
-        resize(CANNY_SIZE) andThen
-        save(c.sourceImage, "_7.jpg", c.showSteps) andThen
-        autoCanny(c.sigma) andThen
-        // canny(50.0, 200.0, 3) andThen
-        save(c.sourceImage, "_8.jpg", c.showSteps) andThen
-        crop(image, c.margins) andThen
-        save(c.sourceImage, c.targetImage, c.saveQuality, c.overwrite)
+        save(c.sourceImage, "_4-rotate.jpg", c.showSteps)
 
     // def canny(hysteresisThreshold1: Double, hysteresisThreshold2: Double, sobelAperture: Int)(i: Mat) =
     //     val o = Mat()
@@ -152,7 +145,7 @@ object Crop:
     //     o
 
     // see https://www.pyimagesearch.com/2017/01/02/rotate-images-correctly-with-opencv-and-python/
-    def rotate(original: Mat, edge: Edge, angularAdjustment: Double)(i: Mat) =
+    private def rotate(original: Mat, edge: Edge, angularAdjustment: Double)(i: Mat) =
         val (v, _) = findEdge(edge, i)
         // XXX - will fail if line is vertical, vx will be 0
         val angle = edge match
@@ -220,8 +213,12 @@ object Crop:
         // to the line and (x0, y0) is a point on the line.
         (Vector(o(0, 0), o(1, 0)), Point(o(2, 0), o(3, 0)))
 
+    private def finalCrop(image: Mat, c: ScanControls) =
+        crop(image, c.margins) andThen
+        save(c.sourceImage, c.targetImage, c.saveQuality, c.overwrite)
+
     // XXX - should check lines and only crop lines that are correctly oriented
-    def crop(original: Mat, m: Margins)(i: Mat) =
+    private def crop(original: Mat, m: Margins)(i: Mat) =
         val (_, t) = findEdge(Top, i)
         val (_, b) = findEdge(Bottom, i)
         val (_, l) = findEdge(LeftSide, i)
