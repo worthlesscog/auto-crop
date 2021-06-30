@@ -39,7 +39,7 @@ object AutoCrop:
 
     private def parseControls(args: List[String], p: CropParameters): Either[String, CropParameters] =
         if (args isEmpty)
-            if (p.sourceImage isEmpty)
+            if (p.source isEmpty)
                 Left("Image?")
             else
                 Right(p)
@@ -53,8 +53,8 @@ object AutoCrop:
             case "-m" :: MARGIN3(top, l, b) :: t    => parseControls(t, p.copy(margins = Margins(top, l, b)))
             case "-m" :: MARGIN4(top, l, b, r) :: t => parseControls(t, p.copy(margins = Margins(top, l, b, r)))
             case "-o" :: t                          => parseControls(t, p.copy(overwrite = true))
-            case "-q" :: POS_INT(q) :: t            => parseControls(t, p.copy(saveQuality = 100 min q.toInt))
+            case "-q" :: POS_INT(q) :: t            => parseControls(t, p.copy(quality = 100 min q.toInt))
             case "-sigma" :: FLOAT(s) :: t          => parseControls(t, p.copy(sigma = s.toDouble))
-            case "-t" :: o :: t                     => parseControls(t, p.copy(targetImage = o))
-            case path :: t                          => parseControls(t, p.copy(sourceImage = path))
+            case "-t" :: o :: t                     => parseControls(t, p.copy(target = o))
+            case path :: t                          => parseControls(t, p.copy(source = path))
             case _                                  => parseControls(Nil, p)

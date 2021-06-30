@@ -10,9 +10,9 @@ case class CropParameters(
     margins: Margins = Margins(0, 0, 0, 0),
     op: CropOperation = SquareUp,
     overwrite: Boolean = false,
-    saveQuality: Int = 100,
+    quality: Int = 100,
     showSteps: Boolean = false,
     sigma: Double = 0.33,
-    sourceImage: String = "",
-    targetImage: String = "output.jpg"
+    source: String = "",
+    target: String = "output.jpg"
 )
