@@ -1,6 +1,6 @@
 package com.worthlesscog.images
 
-import com.worthlesscog.images.Crop.{cannyOnly, cannyThenSquare, crop}
+import com.worthlesscog.images.CropOperation._
 import com.worthlesscog.images.Edge._
 import org.opencv.core.Core
 
@@ -33,28 +33,28 @@ object AutoCrop:
         nu.pattern.OpenCV.loadShared()
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
 
-        parseControls(args toList, ScanControls(op = cannyThenSquare)) match
+        parseControls(args toList, CropParameters()) match
             case Left(oops) => println(oops)
-            case Right(c)   => crop(c)
+            case Right(c)   => Crop.crop(c)
 
-    private def parseControls(args: List[String], c: ScanControls): Either[String, ScanControls] =
+    private def parseControls(args: List[String], p: CropParameters): Either[String, CropParameters] =
         if (args isEmpty)
-            if (c.sourceImage isEmpty)
+            if (p.sourceImage isEmpty)
                 Left("Image?")
             else
-                Right(c)
+                Right(p)
         else args match
-            case "-a" :: FLOAT(a) :: t              => parseControls(t, c.copy(angleAdjustment = a.toDouble % 360.0))
-            case ("-b" | "-l" | "-r") :: t          => parseControls(t, c.copy(alignmentEdge = edges(args head)))
-            case "-c" :: t                          => parseControls(t, c.copy(op = cannyOnly))
-            case "-i" :: t                          => parseControls(t, c.copy(showSteps = true))
-            case "-m" :: MARGIN(m) :: t             => parseControls(t, c.copy(margins = Margins(m)))
-            case "-m" :: MARGIN2(top, l) :: t       => parseControls(t, c.copy(margins = Margins(top, l)))
-            case "-m" :: MARGIN3(top, l, b) :: t    => parseControls(t, c.copy(margins = Margins(top, l, b)))
-            case "-m" :: MARGIN4(top, l, b, r) :: t => parseControls(t, c.copy(margins = Margins(top, l, b, r)))
-            case "-o" :: t                          => parseControls(t, c.copy(overwrite = true))
-            case "-q" :: POS_INT(q) :: t            => parseControls(t, c.copy(saveQuality = 100 min q.toInt))
-            case "-sigma" :: FLOAT(s) :: t          => parseControls(t, c.copy(sigma = s.toDouble))
-            case "-t" :: o :: t                     => parseControls(t, c.copy(targetImage = o))
-            case path :: t                          => parseControls(t, c.copy(sourceImage = path))
-            case _                                  => parseControls(Nil, c)
+            case "-a" :: FLOAT(a) :: t              => parseControls(t, p.copy(angleAdjustment = a.toDouble % 360.0))
+            case ("-b" | "-l" | "-r") :: t          => parseControls(t, p.copy(alignmentEdge = edges(args head)))
+            case "-c" :: t                          => parseControls(t, p.copy(op = CannyOnly))
+            case "-i" :: t                          => parseControls(t, p.copy(showSteps = true))
+            case "-m" :: MARGIN(m) :: t             => parseControls(t, p.copy(margins = Margins(m)))
+            case "-m" :: MARGIN2(top, l) :: t       => parseControls(t, p.copy(margins = Margins(top, l)))
+            case "-m" :: MARGIN3(top, l, b) :: t    => parseControls(t, p.copy(margins = Margins(top, l, b)))
+            case "-m" :: MARGIN4(top, l, b, r) :: t => parseControls(t, p.copy(margins = Margins(top, l, b, r)))
+            case "-o" :: t                          => parseControls(t, p.copy(overwrite = true))
+            case "-q" :: POS_INT(q) :: t            => parseControls(t, p.copy(saveQuality = 100 min q.toInt))
+            case "-sigma" :: FLOAT(s) :: t          => parseControls(t, p.copy(sigma = s.toDouble))
+            case "-t" :: o :: t                     => parseControls(t, p.copy(targetImage = o))
+            case path :: t                          => parseControls(t, p.copy(sourceImage = path))
+            case _                                  => parseControls(Nil, p)

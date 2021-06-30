@@ -1,5 +1,6 @@
 package com.worthlesscog.images
 
+import com.worthlesscog.images.CropOperation._
 import com.worthlesscog.images.Edge._
 import org.opencv.core.{Core, Mat, MatOfInt, MatOfPoint, Point, Rect, Size}
 import org.opencv.imgcodecs.Imgcodecs
@@ -18,10 +19,12 @@ object Crop:
     val CANNY_SIZE = 1024
     val WIP_QUALITY = 75
 
-    def crop(c: ScanControls) =
-        load(c.sourceImage) match
-            case Some(i) => c.op(i, c)
-            case None    => println(s"Can't load ${c.sourceImage}")
+    def crop(p: CropParameters): Unit =
+        load(p.sourceImage) match
+            case None    => println(s"Can't load ${p.sourceImage}")
+            case Some(i) => p.op match
+                case CannyOnly => cannyOnly(i, p)
+                case SquareUp  => cannyThenSquare(i, p)
 
     private def load(image: String) =
         val i = Imgcodecs.imread(image)
@@ -30,19 +33,19 @@ object Crop:
         else
             Some(i)
 
-    def cannyOnly(image: Mat, c: ScanControls) =
-        grayToCanny(c, true, 0)(image)
+    def cannyOnly(image: Mat, p: CropParameters) =
+        grayToCanny(p, true, 0)(image)
 
-    private def grayToCanny(c: ScanControls, showSteps: Boolean, from: Int) =
+    private def grayToCanny(p: CropParameters, showSteps: Boolean, from: Int) =
         grayscale andThen
-        save(c.sourceImage, s"_${from}-grayscale.jpg", c.showSteps) andThen
+        save(p.sourceImage, s"_${from}-grayscale.jpg", p.showSteps) andThen
         gaussianBlur(5, 1.0, 1.0) andThen
-        save(c.sourceImage, s"_${from + 1}-blur.jpg", c.showSteps) andThen
+        save(p.sourceImage, s"_${from + 1}-blur.jpg", p.showSteps) andThen
         resize(CANNY_SIZE) andThen
-        save(c.sourceImage, s"_${from + 2}-resize.jpg", c.showSteps) andThen
-        autoCanny(c.sigma) andThen
+        save(p.sourceImage, s"_${from + 2}-resize.jpg", p.showSteps) andThen
+        autoCanny(p.sigma) andThen
         // canny(50.0, 200.0, 3) andThen
-        save(c.sourceImage, s"_${from + 3}-autocanny.jpg", showSteps)
+        save(p.sourceImage, s"_${from + 3}-autocanny.jpg", showSteps)
 
     def grayscale(i: Mat) =
         val o = Mat()
@@ -129,15 +132,15 @@ object Crop:
     def odd(i: Int) =
         i % 2 != 0
 
-    def cannyThenSquare(image: Mat, c: ScanControls) =
-        val c1 = grayToCanny(c, c.showSteps, 0)(image)
-        val r = rotateSquare(image, c)(c1)
-        val c2 = grayToCanny(c, c.showSteps, 5)(r)
-        finalCrop(r, c)(c2)
+    def cannyThenSquare(image: Mat, p: CropParameters) =
+        val c1 = grayToCanny(p, p.showSteps, 0)(image)
+        val r = rotateSquare(image, p)(c1)
+        val c2 = grayToCanny(p, p.showSteps, 5)(r)
+        finalCrop(r, p)(c2)
 
-    private def rotateSquare(image: Mat, c: ScanControls) =
-        rotate(image, c.alignmentEdge, c.angleAdjustment) andThen
-        save(c.sourceImage, "_4-rotate.jpg", c.showSteps)
+    private def rotateSquare(image: Mat, p: CropParameters) =
+        rotate(image, p.alignmentEdge, p.angleAdjustment) andThen
+        save(p.sourceImage, "_4-rotate.jpg", p.showSteps)
 
     // def canny(hysteresisThreshold1: Double, hysteresisThreshold2: Double, sobelAperture: Int)(i: Mat) =
     //     val o = Mat()
@@ -213,9 +216,9 @@ object Crop:
         // to the line and (x0, y0) is a point on the line.
         (Vector(o(0, 0), o(1, 0)), Point(o(2, 0), o(3, 0)))
 
-    private def finalCrop(image: Mat, c: ScanControls) =
-        crop(image, c.margins) andThen
-        save(c.sourceImage, c.targetImage, c.saveQuality, c.overwrite)
+    private def finalCrop(image: Mat, p: CropParameters) =
+        crop(image, p.margins) andThen
+        save(p.sourceImage, p.targetImage, p.saveQuality, p.overwrite)
 
     // XXX - should check lines and only crop lines that are correctly oriented
     private def crop(original: Mat, m: Margins)(i: Mat) =
