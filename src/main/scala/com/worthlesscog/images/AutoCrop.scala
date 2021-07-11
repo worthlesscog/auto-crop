@@ -11,8 +11,10 @@ import scala.math.{abs, atan, toDegrees}
 object AutoCrop:
 
     val DIGITS = "\\d+"
+    val QUAD = "\\d{1,4}"
     val TRIPLET = "\\d{1,3}"
-    val INT = "-?" + TRIPLET
+
+    val INT = "-?" + QUAD
     val FLT = INT + "\\." + DIGITS
 
     val CAP_FLT = s"($FLT)"
